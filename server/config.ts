@@ -31,8 +31,9 @@ export interface AppConfig {
     /** USD per million tokens, used for cost estimates and usage records. */
     textInputCostPerMTok: number;
     textOutputCostPerMTok: number;
-    imageProvider: "openai" | "demo";
+    imageProvider: "openai" | "cloudflare" | "demo";
     openaiImageModel: string;
+    cloudflareImageModel: string;
     openaiBaseUrl: string;
     imageTimeoutMs: number;
     /** USD per generated image at each quality level (estimate; set from your provider's price list). */
@@ -66,7 +67,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   // auto: Claude if its key is set, else Groq (free tier) if its key is set, else demo.
   const textProvider: AppConfig["ai"]["textProvider"] =
     textProviderSetting === "demo" ? "demo" : textProviderSetting === "groq" ? "groq" : textProviderSetting === "anthropic" || env.ANTHROPIC_API_KEY ? "anthropic" : env.GROQ_API_KEY ? "groq" : "demo";
-  const imageProvider = imageProviderSetting === "demo" ? "demo" : imageProviderSetting === "openai" || env.OPENAI_API_KEY ? "openai" : "demo";
+  // auto: OpenAI if its key is set, else Cloudflare Workers AI (free allowance) if its credentials are set, else demo.
+  const cloudflareReady = Boolean(env.CLOUDFLARE_API_TOKEN && env.CLOUDFLARE_ACCOUNT_ID);
+  const imageProvider: AppConfig["ai"]["imageProvider"] =
+    imageProviderSetting === "demo" ? "demo" : imageProviderSetting === "cloudflare" ? "cloudflare" : imageProviderSetting === "openai" || env.OPENAI_API_KEY ? "openai" : cloudflareReady ? "cloudflare" : "demo";
   const effort = (env.ANTHROPIC_EFFORT || "medium") as AppConfig["ai"]["anthropicEffort"];
   return {
     env: nodeEnv,
@@ -99,6 +103,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       textOutputCostPerMTok: num(env.TEXT_OUTPUT_COST_PER_MTOK, 20),
       imageProvider,
       openaiImageModel: env.OPENAI_IMAGE_MODEL || "gpt-image-1",
+      cloudflareImageModel: env.CF_IMAGE_MODEL || "@cf/black-forest-labs/flux-1-schnell",
       openaiBaseUrl: (env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, ""),
       imageTimeoutMs: num(env.IMAGE_TIMEOUT_MS, 180_000),
       imageCostUsd: {

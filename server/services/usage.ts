@@ -37,7 +37,7 @@ export async function usageSummary(app: AppContext, userId: string): Promise<Usa
 }
 
 export function imageUnitCost(app: AppContext, quality: ImageQuality): number {
-  return app.image.isDemo ? 0 : app.config.ai.imageCostUsd[quality];
+  return app.image.isDemo || app.image.name === "cloudflare" ? 0 : app.config.ai.imageCostUsd[quality];
 }
 
 /** Rough upper estimate for one planning call (inputs ~3k tokens, output ~180 tokens per page). */
